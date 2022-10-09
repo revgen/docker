@@ -1,0 +1,104 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------------------------------
+  build-docker-minidlna:
+    runs-on: ubuntu-latest
+    name: "Build docker-minidlna"
+    defaults:
+      run:
+        working-directory: ./docker-minidlna
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/minidlna
+    steps:
+      - name: Check Out Repo
+        uses: actions/checkout@v2
+      - name: Get current docker image version
+        continue-on-error: true
+        id: check_version
+        run: (../scripts/docker-check-image-version "${IMAGE_NAME}") || true
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
+        with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
+        # Setting up Docker Buildx with docker-container driver is required
+        # at the moment to be able to use a subdirectory with Git context
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
+      - name: Build and push to the Docker Hub registry
+        uses: docker/build-push-action@v3
+        id: docker_build
+        if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
+        with:
+          context: "{{defaultContext}}:docker-minidlna"
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+      - name: Build and push status
+        if: success()
+        run: |
+          if [ "${IMAGE_VERSION}" != "${REPO_IMAGE_VERSION}" ]; then
+            echo " * ${IMAGE_NAME}:${IMAGE_VERSION} - ${{ steps.docker_build.outputs.digest }}"
+            echo "### :ok_hand: :white_check_mark: Docker image ${IMAGE_NAME}:${IMAGE_VERSION} was created!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### :white_check_mark: Skip create docker image '${IMAGE_NAME}' version ${IMAGE_VERSION} already exists." >> $GITHUB_STEP_SUMMARY
+          fi
+  # --------------------------------------------------------------------------
+  build-docker-transmission:
+    runs-on: ubuntu-latest
+    name: "Build docker-transmission"
+    defaults:
+      run:
+        working-directory: ./docker-transmission
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/transmission
+    steps:
+      - name: Check Out Repo
+        uses: actions/checkout@v2
+      - name: Get current docker image version
+        continue-on-error: true
+        id: check_version
+        run: (../scripts/docker-check-image-version "${IMAGE_NAME}") || true
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
+        with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
+        # Setting up Docker Buildx with docker-container driver is required
+        # at the moment to be able to use a subdirectory with Git context
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
+      - name: Build and push to the Docker Hub registry
+        uses: docker/build-push-action@v3
+        id: docker_build
+        if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
+        with:
+          context: "{{defaultContext}}:docker-transmission"
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+      - name: Build and push status
+        if: success()
+        run: |
+          if [ "${IMAGE_VERSION}" != "${REPO_IMAGE_VERSION}" ]; then
+            echo " * ${IMAGE_NAME}:${IMAGE_VERSION} - ${{ steps.docker_build.outputs.digest }}"
+            echo "### :ok_hand: :white_check_mark: Docker image ${IMAGE_NAME}:${IMAGE_VERSION} was created!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### :white_check_mark: Skip create docker image '${IMAGE_NAME}' version ${IMAGE_VERSION} already exists." >> $GITHUB_STEP_SUMMARY
+          fi

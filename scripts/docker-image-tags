@@ -10,4 +10,4 @@ if [ -z "${image_name}" ] || [ "${image_name}" == "--help" ]; then
 fi
 debug "Get ${image_name} tags"
 curl -sL https://hub.docker.com/v2/repositories/${image_name}/tags?page_size=1000 \
-| jq -r ".results[] | .name" | sort -V
+| jq -r ".results[] | .name" | sort -rV
