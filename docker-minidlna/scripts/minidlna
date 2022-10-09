@@ -1,0 +1,116 @@
+#!/bin/bash
+#=============================================================================
+## Helper script to control minidlna docker container.
+## Usage: {SCRIPT_NAME} <start|stop|create|remove|logs|info|shell>
+#
+#  Author  : Evgen Rusakov
+#  Version : 1.0.0
+#  Url     : https://github.com/revgen/docker-minidlna
+#
+## Environment variables:
+##   DLNA_VIDEO_STORAGE      	- 
+##   DLNA_MUSIC_STORAGE   	- 
+##   DLNA_IMAGE_STORAGE   	- 
+##   DLNA_DOWNLOADS_STORAGE	- 
+#=============================================================================
+# Show help screen based on the commented text at the top of the currect script
+show_help() {
+    sed -n '/^##/,/^$/s/^## \{0,1\}//p' "$0" | sed 's/{SCRIPT_NAME}/'"$(basename "${0}")"'/g'
+    exit 255
+}
+
+#-----------------------------------------------------------------------------
+# PARAMETERS
+IMAGE=${IMAGE:-"rev9en/minidlna"}
+VERSION=${VERSION:-"latest"}
+NAME=${NAME:-"$(basename "${IMAGE}")"}
+
+DLNA_VIDEO_STORAGE=${DLNA_VIDEO_STORAGE:-"/mnt/Video"}
+DLNA_MUSIC_STORAGE=${DDLNA_MUSIC_STORAGE:-"/mnt/Music"}
+DLNA_IMAGES_STORAGE=${DLNA_IMAGES_STORAGE:-"/mnt/Images"}
+DLNA_DOWNLOADS_STORAGE=${DLNA_DOWNLOADS_STORAGE:-"/mnt/Downloads"}
+
+# Using your current user default group ID inside the docker container
+PGID=${DLNA_GID:-"$(id -G | cut -d" " -f1)"}
+# Using your current user ID inside the docker container
+PUID=${DLNA_UID:-${UID}}
+# Http port to the Transmission web UI
+PORT=${DLNA_PORT:-"1883"}
+
+#-----------------------------------------------------------------------------
+create_container() {
+    create_directories
+    # get current timezone: linux and os x version or UTC
+    TZ=$(ls -l /etc/localtime | awk -F"zoneinfo/" '{print $2}' 2>/dev/null || echo "UTC")
+    docker create --name="${NAME}" --restart=always \
+    	-v "${DLNA_VIDEO_STORAGE}":/media/Video \
+    	-v "${DLNA_IMAGES_STORAGE}":/media/Pictures \
+    	-v "${DLNA_MUSIC_STORAGE}":/media/Music \
+    	-v "${DLNA_DOWNLOADS_STORAGE}":/media/Downloads \
+        -e PGID=${PGID} -e PUID=${PUID} \
+        -e TZ=${TZ} \
+	-d -p "${PORT}":1883 -p 1900:1900/udp -p 8200:8200 \
+    	"${IMAGE}:${VERSION}"
+    echo "Container '${NAME}' created successfully (from image: ${IMAGE}:${VERSION})."
+}
+
+#-----------------------------------------------------------------------------
+start_container() {
+    create_directories
+    echo "Starting '${NAME}' container..."
+    docker start "${NAME}" && echo "Started '${NAME} - successfully"
+}
+
+#-----------------------------------------------------------------------------
+stop_container() {
+    echo "Stopping '${NAME}' container ..."
+    docker stop "${NAME}" && echo "Stopped '${NAME}' - successfully"
+}
+
+#-----------------------------------------------------------------------------
+remove_container() {
+    stop_container
+    echo "Removing '${NAME}' container..."
+    docker rm "${NAME}" 2>/dev/null
+    echo "Done"
+}
+
+#-----------------------------------------------------------------------------
+# Show main information about a contaier
+status_container() {
+    img=$(docker images "${IMAGE}" --format "{{.Repository}}:{{.Tag}}")
+    if [ -n "${img}" ]; then echo "    Image: ${img}";
+    else echo "    Image: Error - Image '${NAME}' not found"; fi
+    id=$(docker ps --filter name=${NAME} --format "{{.ID}}")
+    echo "Container: ${NAME}"
+    if [ -n "${id}" ]; then
+        ports=$(docker ps --filter name="${NAME}" --format "{{.Ports}}")
+        status=$(docker ps --filter name="${NAME}" --format "{{.Status}}")
+        mounts=$(docker inspect --format="{{range .Mounts }}{{.Source}} -> {{.Destination}},{{end}}" "${NAME}" | tr -s ',' '; ')
+        started=$(docker inspect --format='{{.State.StartedAt}}' "${NAME}")
+        echo "*  Status: ${status}"
+        echo "* Started: ${started}"
+        echo "*      ID: ${id}"
+        echo "*   Ports: ${ports}"
+        echo "*  Mounts: ${mounts}"
+        return 0
+    else
+        echo "*  Status: stopped or not exists"   
+        return 1
+    fi    
+}
+
+#-----------------------------------------------------------------------------
+# Parse command line and handle a command
+case "${1:-"help"}" in
+    create|C)       shift; create_container $@ ;;
+    delete|remove)  shift; remove_container $@ ;;
+    start|s)        shift; start_container $@ ;;
+    stop|S)         shift; stop_container $@ ;;
+    shell|sh)       shift; docker exec -it "${NAME}" ${1:-"/bin/sh"} ;;
+    log|logs|l)     shift; docker logs "${NAME}" $@ ;;
+    status|st)      shift; status_container $@ ;;
+    info|I)         shift; status_container $@ ;;
+    help|h|H)       show_help ;;
+    *) echo "Error: Unknow command '${1}'."; show_help ;;
+esac

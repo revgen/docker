@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+debug() { >&2 echo "$*"; }
+
+image_name="${1}"
+image_version="${2:-"1.0.0"}"
+script_dir="$(dirname "${0}")"
+force=0
+if [ -z "${image_name}" ] || [ "${image_name}" == "--help" ]; then
+    echo "Usage: $(basename "${0}") <image name>"
+    echo "System environment:"
+    echo "  DOCKER_REGISTRY - specify a docker registry url (drfault: hub.docker.com)"
+    echo "  DOCKER_USERNAME - specify a docker registry user name"
+    echo "  DOCKERHUB_TOKEN - specify a docker registry access token"
+    exit 1
+fi
+
+docker_login() {
+    DOCKER_REGISTRY=${DOCKER_REGISTRY:-""}
+    DOCKER_USERNAME=${DOCKER_USERNAME}
+    DOCKER_TOKEN=${DOCKER_TOKEN}
+
+    DOCKER_USERNAME=rev9en
+    DOCKER_TOKEN=dckr_pat_KeP4mWEaW6AaOQWe7IIA4t8Nkf0
+
+    debug "Login to the docker registry: ${DOCKER_REGISTRY:-"hub.docker.com"}"
+    echo "${DOCKER_TOKEN}" \
+    | docker login -u ${DOCKER_REGISTRY} "${DOCKER_USERNAME}" --password-stdin
+}
+
+docker_push() {
+    if [ -n "${DOCKER_REGISTRY}" ]; then
+        full_image_name="${DOCKER_REGISTRY}/${image_name}"
+    else
+        full_image_name="${image_name}"
+    fi
+    debug "Check image ${image_name} existing versions"
+    remote_version="$("${script_dir}/docker-image-tags" "${image_name}" 2>/dev/null | grep '[0-9]\.[0-9]\.[0-9]' | head -n 1)"
+    debug "Image remote version is ${remote_version:-"null"}"
+    if [ "${image_version}" == "${remote_version}" ] && [ ${force} -eq 0 ]; then
+        debug "Version ${image_name}:${image_version} already exists on the registry. Skip push."
+    else
+        debug "Pushing ${image_name}:${image_version}"
+        docker push "${full_image_name}:${image_version}"
+        debug "Pushing ${image_name}:latest"
+        docker push "${full_image_name}:latest"
+        debug "Done"
+    fi
+}
+
+docker_login && docker_push

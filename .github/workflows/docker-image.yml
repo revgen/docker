@@ -1,0 +1,64 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: name: "Build docker image: minidlna"
+    defaults:
+      run:
+        working-directory: ./docker-minidlna
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/minidlna
+    steps:
+      - name: Check Out Repo
+        uses: actions/checkout@v2
+       - name: Get current version
+        run: |
+          echo "Get docker image version"
+          image_name_from_file=$(cat ./Dockerfile | grep "image.name" | cut -d'"' -f2)
+          if [ -z "${image_name_from_file}" ] || [ "${image_name_from_file}" != "${IMAGE_NAME}" ]; then
+            echo "Error: image name not found or it is incorrect: ${image_name_from_file} != ${IMAGE_NAME}"; exit 1;
+          fi
+          IMAGE_VERSION=$(cat ./Dockerfile | grep "image.version" | cut -d'"' -f2)
+          if [ -z "${IMAGE_VERSION}" ] || [ -z "${IMAGE_VERSION}" ]; then
+            echo "Error: image version not found in the Dockerfile."; exit 1;
+          fi
+          echo "Found version: ${IMAGE_NAME} v${IMAGE_VERSION}"
+
+          echo "Check existing version"
+          REMOTE_VERSION="../scripts/docker-image-tags" "${IMAGE_NAME}" 2>/dev/null | grep '[0-9]\.[0-9]\.[0-9]' | head -n 1)"
+          echo "Image remote version is ${REMOTE_VERSION:-"null"}"
+          if [ "${IMAGE_VERSION}" == "${REMOTE_VERSION}" ] && [ ${force} -eq 0 ]; then
+            echo "Version ${IMAGE_NAME}:${IMAGE_VERSION} already exists on the registry."
+            exit 1
+          else
+            echo "Image ${IMAGE_NAME}:${IMAGE_VERSION} need to be pushing to the registry"
+            echo "IMAGE_VERSION=$IMAGE_VERSION" >> $GITHUB_ENV
+          fi
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Build and push to the Docker Hub registry
+        uses: docker/build-push-action@v2
+        id: docker_build
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+      - name: Status
+        run: |
+          echo "Build and push new docker image:"
+          echo " * ${IMAGE_NAME}:${IMAGE_VERSION} - ${{ steps.docker_build.outputs.digest }}"
+          echo " * ${IMAGE_NAME}:latest - ${{ steps.docker_build.outputs.digest }}"
