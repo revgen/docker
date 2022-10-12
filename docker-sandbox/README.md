@@ -1,9 +1,9 @@
 # [docker-sandbox][github-repo]
 
-Docker image with developer sandbox, based on Ubuntu Linux.
-
 [![Build Docker Image](https://github.com/revgen/docker/actions/workflows/docker-sandbox.yml/badge.svg)](https://github.com/revgen/docker/actions/workflows/docker-sandbox.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+[Docker image](https://hub.docker.com/r/rev9en/sandbox) with developer sandbox, based on Ubuntu Linux.
 
 It contains:
 
@@ -31,4 +31,4 @@ docker run -it --rm \
 If you want to use docker inside the docker image, add a ```--privileged``` parameter into the ```docker run``` command.
 
 [sandbox-hub]: https://hub.docker.com/r/rev9en/sandbox/
-[github-repo]: https://github.com/revgen/docker-sandbox/
+[github-repo]: https://github.com/revgen/docker/docker-sandbox/
