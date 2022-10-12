@@ -2,6 +2,9 @@
 
 Repository contains source code and data for Docker Image with [minidlna][minidlna-site].
 
+[![Build Docker Image](https://github.com/revgen/docker/actions/workflows/docker-minidlna.yml/badge.svg)](https://github.com/revgen/docker/actions/workflows/docker-minidlna.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 The image is currently available on [hub.docker.com][minidlna-hub].
 
 ## Usage

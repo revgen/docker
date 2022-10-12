@@ -1,6 +1,6 @@
 # [docker-transmission][github-repo]
 
-[![Build Docker Image](https://github.com/revgen/docker-transmission/actions/workflows/docker-image.yml/badge.svg)](https://github.com/revgen/docker-transmission/actions/workflows/docker-image.yml)
+[![Build Docker Image](https://github.com/revgen/docker/actions/workflows/docker-transmission.yml/badge.svg)](https://github.com/revgen/docker/actions/workflows/docker-transmission.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![rev9en/transmission](https://dockeri.co/image/rev9en/transmission)](https://hub.docker.com/r/rev9en/transmission)
