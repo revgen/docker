@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# ############################################################################
+#
+#
+# ############################################################################
+if [ ! -f "./Dockerfile" ]; then
+    echo "Error: can't find Dockerfile in the $(pwd)"
+    exit 1
+fi
+IMAGE_DESCRIPTION=$(cat ./Dockerfile | grep "image.description" | cut -d'"' -f2)
+echo "IMAGE_DESCRIPTION=$IMAGE_DESCRIPTION" >> $GITHUB_ENV
+echo "Docker image description: ${IMAGE_DESCRIPTION}"

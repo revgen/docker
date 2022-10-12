@@ -120,4 +120,4 @@ docker push rev9en/transmission:latest
 [transmission-site]: https://transmissionbt.com/
 [alpine-site]: https://hub.docker.com/_/alpine/
 [transmission-hub]: https://hub.docker.com/r/rev9en/transmission/
-[github-repo]: https://github.com/revgen/docker-transmission/
+[github-repo]: https://github.com/revgen/docker/docker-minidlna/
