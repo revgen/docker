@@ -2,7 +2,7 @@ FROM alpine:3.8
 
 LABEL image.version="1.0.2" \
       image.name="rev9en/transmission" \
-      image.description="Docker image with transmission-daemon." \
+      image.description="Docker image with transmission-daemon" \
       image.date="2018-03-14" \
       maintainer="Evgen Rusakov" \
       url.docker="https://hub.docker.com/r/rev9en/transmission" \

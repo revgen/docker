@@ -1,0 +1,33 @@
+#!/bin/sh
+
+start_mc_server() {
+    echo "------------------------------------------------------------"
+    echo "Starting minicraft-server..."
+    cd "${MINECRAFT_DIR}"
+    export MINECRAFT_MEMORY_INIT=${MINECRAFT_MEMORY_INIT:-"${MINECRAFT_MEMORY}"}
+    export JVM_OPTS="-XX:+UseG1GC"
+    echo "env:MINECRAFT_DIR=${PWD}"
+    echo "env:MINECRAFT_MEMORY_INIT=${MINECRAFT_MEMORY_INIT}"
+    echo "env:MINECRAFT_MEMORY=${MINECRAFT_MEMORY}"
+    echo "env:JVM_OPTS=${JVM_OPTS}"
+    echo ""
+    echo "Working directory: ${PWD}"
+    ls -ahl ./
+    echo ""
+    java -Xms${MINECRAFT_MEMORY_INIT} -Xmx${MINECRAFT_MEMORY} ${JVM_OPTS} -jar ./server.jar nogui
+}
+
+get_pid() {
+    ps -ef | grep ./[s]erver.jar 2>/dev/null | awk '{print $2}' 2>/dev/null | grep -v $$ | xargs
+}
+
+stop_mc_server() {
+    pid=$(get_pid)
+    [ -n "${pid}" ] && echo "Killing ${pid} process." && kill ${pid}
+}
+
+case "${cmd:-"start"}" in
+    start) start_mc_server ;;
+    stop) stop_mc_server ;;
+    *) echo "Error: unknown '${1}' command"; exit 1 ;;
+esac
