@@ -22,8 +22,8 @@ jobs:
       - name: Get docker image metadata
         continue-on-error: true
         run: |
-          ../scripts/docker-check-image-version "${IMAGE_NAME}" || true
-          ../scripts/docker-image-description "${IMAGE_NAME}" || true
+          ../.github/docker-check-image-version "${IMAGE_NAME}" || true
+          ../.github/docker-image-description "${IMAGE_NAME}" || true
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         if: env.IMAGE_VERSION != env.REPO_IMAGE_VERSION
@@ -55,12 +55,7 @@ jobs:
           repository: ${{ env.IMAGE_NAME }}
           short-description: ${{ env.IMAGE_DESCRIPTION }}
           readme-filepath: ./docker-transmission/README.md
-      - name: Build and push status
+      - name: Build status
         if: success()
-        run: |
-          if [ "${IMAGE_VERSION}" != "${REPO_IMAGE_VERSION}" ]; then
-            echo " * ${IMAGE_NAME}:${IMAGE_VERSION} - ${{ steps.docker_build.outputs.digest }}"
-            echo "### :ok_hand: :white_check_mark: Docker image ${IMAGE_NAME}:${IMAGE_VERSION} was created!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### :white_check_mark: Skip create docker image '${IMAGE_NAME}' version ${IMAGE_VERSION} already exists." >> $GITHUB_STEP_SUMMARY
-          fi
+        working-directory: ./.github
+        run: ./github-build-status "${IMAGE_NAME}" "${IMAGE_VERSION}" "${REPO_IMAGE_VERSION}" "${{ steps.docker_build.outputs.digest }}"

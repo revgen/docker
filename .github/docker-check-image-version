@@ -7,6 +7,7 @@ if [ ! -f "./Dockerfile" ]; then
     echo "Error: can't find Dockerfile in the $(pwd)"
     exit 1
 fi
+GITHUB_ENV=${GITHUB_ENV:-"/dev/stdout"}
 IMAGE_NAME=${1:-"${IMAGE_NAME}"}
 echo "Get docker image version from the ./Dockerfile"
 image_name_from_file=$(cat ./Dockerfile | grep "IMAGE_NAME" | head -n 1 | cut -d'"' -f2)
@@ -26,7 +27,7 @@ fi
 echo "Found version: ${IMAGE_NAME} v${IMAGE_VERSION}"
 
 echo "Check existing version"
-REPO_IMAGE_VERSION="$("$(dirname "${0}")/docker-image-tags" "${IMAGE_NAME}" 2>/dev/null | grep '[0-9]\.[0-9]\.[0-9]' | head -n 1)"
+REPO_IMAGE_VERSION="$("$(dirname "${0}")/../scripts/docker-image-tags" "${IMAGE_NAME}" 2>/dev/null | grep '[0-9]\.[0-9]\.[0-9]' | head -n 1)"
 echo "Image remote version is ${REPO_IMAGE_VERSION:-"null"}"
 if [ -n "${GITHUB_ENV}" ]; then
     echo "IMAGE_VERSION=$IMAGE_VERSION" >> $GITHUB_ENV

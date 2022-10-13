@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-LABEL image.version="1.0.0" \
+LABEL image.version="1.0.1" \
       image.name="rev9en/minecraft" \
       image.description="Docker image with Minecraft Server Java Edition" \
       image.date="2021-05-17" \

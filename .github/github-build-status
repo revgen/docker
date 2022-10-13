@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+IMAGE_NAME=${1:-"${IMAGE_NAME}"}
+IMAGE_VERSION="${2:-"${IMAGE_VERSION}"}"
+REPO_IMAGE_VERSION="${3:-"${REPO_IMAGE_VERSION}"}"
+IMAGE_HASH="${4}"
+GITHUB_STEP_SUMMARY=${GITHUB_STEP_SUMMARY:-"/dev/stdout"}
+
+if [ "${IMAGE_VERSION}" != "${REPO_IMAGE_VERSION}" ]; then
+  if [ -n "${IMAGE_HASH}" ]; then
+    echo " * ${IMAGE_NAME}:${IMAGE_VERSION} - ${IMAGE_HASH}"
+  else
+    echo " * ${IMAGE_NAME}:${IMAGE_VERSION}"
+  fi
+  echo "### :ok_hand: :white_check_mark: Docker image ${IMAGE_NAME}:${IMAGE_VERSION} was created!" >> $GITHUB_STEP_SUMMARY
+else
+  echo "### :white_check_mark: Skip create docker image '${IMAGE_NAME}'. Version ${IMAGE_VERSION} already exists." >> $GITHUB_STEP_SUMMARY
+fi
