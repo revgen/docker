@@ -25,7 +25,7 @@
 #  License    : MIT
 #=============================================================================
 NAME=${CONTAINER_NAME:-"plex"}
-IMAGE=plexinc/pms-docker
+IMAGE=rev9en/plex
 CONFIG_NAME=${NAME}.conf
 PUID=${PUID:-"${UID}"}
 PGID=${PGID:-"$(id -g)"}
