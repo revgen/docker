@@ -4,14 +4,16 @@
 ## Usage: {SCRIPT_NAME} <start|stop|create|remove|logs|info|shell>
 #
 #  Author  : Evgen Rusakov
-#  Version : 1.0.1
+#  Version : 1.0.2
 #  Url     : https://github.com/revgen/docker-minidlna
 #
 ## Environment variables:
-##   DLNA_VIDEO_STORAGE         - 
-##   DLNA_MUSIC_STORAGE         - 
-##   DLNA_IMAGE_STORAGE         - 
-##   DLNA_DOWNLOADS_STORAGE     - 
+##   DLNA_VIDEO_STORAGE         - directory with video library (default: /mnt/storage/media/Video)
+##   DLNA_MUSIC_STORAGE         - directory with music library (default: /mnt/storage/media/Music)
+##   DLNA_IMAGE_STORAGE         - directory with images (default: /mnt/storage/photos)
+##   DLNA_DOWNLOADS_STORAGE     - directory with video/music/images (default: /mnt/storage/downloads)
+##   DLNA_SERVER_NAME           - Name of the server visible in the network (default: MediaServer)
+##
 #=============================================================================
 # Show help screen based on the commented text at the top of the currect script
 show_help() {
@@ -25,31 +27,35 @@ IMAGE=${IMAGE:-"rev9en/minidlna"}
 VERSION=${VERSION:-"latest"}
 NAME=${NAME:-"$(basename "${IMAGE}")"}
 
-DLNA_VIDEO_STORAGE=${DLNA_VIDEO_STORAGE:-"/mnt/storage/media/Video"}
-DLNA_MUSIC_STORAGE=${DDLNA_MUSIC_STORAGE:-"/mnt/storage/media/Music"}
-DLNA_IMAGES_STORAGE=${DLNA_IMAGES_STORAGE:-"/mnt/storage/photos"}
-DLNA_DOWNLOADS_STORAGE=${DLNA_DOWNLOADS_STORAGE:-"/mnt/storage/downloads"}
+DLNA_VIDEO_STORAGE="${DLNA_VIDEO_STORAGE:-"/mnt/storage/media/Video"}"
+DLNA_MUSIC_STORAGE="${DDLNA_MUSIC_STORAGE:-"/mnt/storage/media/Music"}"
+DLNA_IMAGES_STORAGE="${DLNA_IMAGES_STORAGE:-"/mnt/storage/photos"}"
+DLNA_DOWNLOADS_STORAGE="${DLNA_DOWNLOADS_STORAGE:-"/mnt/storage/downloads"}"
+DLNA_SERVER_NAME="${DLNA_SERVER_NAME:-"MediaServer"}"
 
 # Using your current user default group ID inside the docker container
 PGID=${DLNA_GID:-"$(id -G | cut -d" " -f1)"}
 # Using your current user ID inside the docker container
 PUID=${DLNA_UID:-${UID}}
 # Http port to the Transmission web UI
-PORT=${DLNA_PORT:-"1883"}
+PORT=${DLNA_PORT:-"8200"}
 
 #-----------------------------------------------------------------------------
 create_container() {
     # get current timezone: linux and os x version or UTC
-    TZ=$(ls -l /etc/localtime | awk -F"zoneinfo/" '{print $2}' 2>/dev/null || echo "UTC")
+    TZ=$(ls -l /etc/localtime 2>/dev/null | awk -F"zoneinfo/" '{print $2}' 2>/dev/null || echo "UTC")
+    # The "--net=host" argument is very important, because it makes minidlna visible to all network
     docker create --name="${NAME}" --restart=always \
-    	-v "${DLNA_VIDEO_STORAGE}":/media/Video \
-    	-v "${DLNA_IMAGES_STORAGE}":/media/Pictures \
-    	-v "${DLNA_MUSIC_STORAGE}":/media/Music \
-    	-v "${DLNA_DOWNLOADS_STORAGE}":/media/Downloads \
+        --net=host \
+        -p 1883:1883 -p 1900:1900/udp -p "${DLNA_PORT}":8200 -p 8280:80 \
+        -v "${DLNA_VIDEO_STORAGE}":/media/Video \
+        -v "${DLNA_IMAGES_STORAGE}":/media/Pictures \
+        -v "${DLNA_MUSIC_STORAGE}":/media/Music \
+        -v "${DLNA_DOWNLOADS_STORAGE}":/media/Downloads \
         -e PGID=${PGID} -e PUID=${PUID} \
-        -e TZ=${TZ} \
-	-p "${PORT}":1883 -p 1900:1900/udp -p 8200:8200 -p 8280:80 \
-    	"${IMAGE}:${VERSION}"
+        -e TZ="${TZ}" \
+        -e DLNA_SERVER_NAME="${DLNA_SERVER_NAME}" \
+        "${IMAGE}:${VERSION}"
     echo "Container '${NAME}' created successfully (from image: ${IMAGE}:${VERSION})."
 }
 

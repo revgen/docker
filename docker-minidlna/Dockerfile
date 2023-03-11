@@ -1,6 +1,6 @@
 FROM alpine:3.8
 
-LABEL image.version="1.0.1" \
+LABEL image.version="1.0.2" \
       image.name="rev9en/minidlna" \
       image.description="Docker image with minidlna" \
       image.date="2019-03-23" \
@@ -19,4 +19,4 @@ COPY root-fs/ /
 EXPOSE 1900/udp
 EXPOSE 8200
 
-ENTRYPOINT ["/usr/sbin/minidlnad", "-S"]
+ENTRYPOINT ["/start-minidlna.sh"]
