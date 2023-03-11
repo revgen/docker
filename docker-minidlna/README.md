@@ -27,4 +27,4 @@ docker logs minidlna -f
 
 [minidlna-site]: https://help.ubuntu.com/community/MiniDLNA
 [minidlna-hub]: https://hub.docker.com/r/rev9en/minidlna/
-[github-repo]: https://github.com/revgen/docker/docker-minidlna/
+[github-repo]: https://github.com/revgen/docker/tree/master/docker-minidlna/
