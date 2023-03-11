@@ -1,148 +1,126 @@
 #!/bin/bash
 #=============================================================================
-## Helper script to start/stop/manage Plex Media Server
-## The script is using '{IMAGE}' docker image.
+## Helper script to control timemachine docker container
 ##
-## Usage: {SCRIPT_NAME} <command>
-## Commands:
-##   create/remove  - create or remove '{NAME}' container
-##   start/stop     - start/stop '{NAME}' container
-##   status         - show current status of the '{NAME}' container
-##   config         - show current/default config for the script
-##   logs           - show logs from the '{NAME}' container
-##   shell          - open shell inside the container
+## Usage: {SCRIPT_NAME} <start|stop|create|remove|logs|info|shell>
 ##
-## System environment variables:
-##   $ {SCRIPT_NAME} config
-##
-## Config files:
-##   /etc/{NAME}.conf
-##   ~/.config/{NAME}.conf
+#  Author  : Evgen Rusakov
+#  Url     : https://github.com/revgen/docker-timemachine
 #
-#  Author     : Evgen Rusakov
-#  Version    : 1.0.0
-#  Url        : https://github.com/revgen
-#  License    : MIT
+## Environment variables:
+##   SMB_NAME       - name of the server (default: Home Time Machine)
+##   SMB_USER       - username to log into the server with (default: tm)
+##   SMB_PASSWORD   - password to log into the server with (default: machine)
+##   TM_DIRECTORY   - timemachine directory (default: /mnt/backup/timemachine)
+##
 #=============================================================================
-NAME=${CONTAINER_NAME:-"plex"}
-IMAGE=rev9en/plex
-CONFIG_NAME=${NAME}.conf
-PUID=${PUID:-"${UID}"}
-PGID=${PGID:-"$(id -g)"}
-TZ=$(cat /etc/timezone 2>/dev/null)
-
-#--[ The script specific methods ]---------------------------------------------
-load_config() {
-    PLEX_CLAIM_TOKEN=${PLEX_CLAIM_TOKEN:-"claim-xxxxxxxxxxxxxx"}
-    PLEX_STORAGE=${PLEX_STORAGE:-"/mnt/plex/storage"}
-    PLEX_DOWNLOADS=${PLEX_DOWNLOADS:-"/mnt/plex/downloads"}
-    PLEX_CONFIG=${PLEX_CONFIG:-"/mnt/plex/config"}
-    PLEX_TRANSCODE=${PLEX_TRANSCODE:-"/mnt/plex/transcode"}
-}
-
-show_config() {
-    echo "# -- Default configuration for the ${NAME} docker container --"
-    echo "# https://www.plex.tv/claim/"
-    echo "PLEX_CLAIM_TOKEN=${PLEX_CLAIM_TOKEN}"
-    echo "PLEX_STORAGE=${PLEX_STORAGE}"
-    echo "PLEX_DOWNLOADS=${PLEX_DOWNLOADS}"
-    echo "PLEX_CONFIG=${PLEX_CONFIG}"
-    echo "PLEX_TRANSCODE=${PLEX_TRANSCODE}"
-}
-
-create_container() {
-    mkdir -p "${PLEX_STORAGE}" "${PLEX_DOWNLOADS}" "${PLEX_CONFIG}" "${PLEX_TRANSCODE}"
-    #chown -R ${PUID}:${PGID} "${PLEX_STORAGE}" "${PLEX_DOWNLOADS}" "${PLEX_CONFIG}" "${PLEX_TRANSCODE}"
-    #chmod 0770 "${PLEX_CONFIG}" "${PLEX_TRANSCODE}"
-    #chmod 0775 "${PLEX_STORAGE}" "${PLEX_DOWNLOADS}"
-
-    echo "Create ${NAME} container."
-    echo "-   Storage: ${PLEX_STORAGE}"
-    echo "-  Downloas: ${PLEX_DOWNLOADS}"
-    echo "-    Config: ${PLEX_CONFIG}"
-    echo "- Transcode: ${PLEX_TRANSCODE}"
-    # port: 1900 (access to the Plex DLNA Server)
-    # port: 8324 (controlling Plex for Roku via Plex Companion)
-    # port: 3005 (locally controlling Plex Home Theater via Plex Companion)
-    # port: 32410, 32412, 32413, 32414 (current GDM network discovery)
-    # port: 32469 (access to the Plex DLNA Server)
-    docker create --name ${NAME} --restart=always \
-        -p 32400:32400/tcp \
-        -p 1900:1900/udp \
-        -p 8324:8324/tcp \
-        -p 3005:3005/tcp \
-        -p 32410:32410/udp -p 32412:32412/udp -p 32413:32413/udp -p 32414:32414/udp \
-        -p 32469:32469/tcp \
-        -e TZ="${TZ}" \
-        -e PGID=${PGID} -e PUID=${PUID} \
-        -e PLEX_CLAIM="${PLEX_CLAIM_TOKEN}" \
-        -v ${PLEX_CONFIG}:/config \
-        -v ${PLEX_TRANSCODE}:/transcode \
-        -v ${PLEX_STORAGE}:/storage \
-        -v ${PLEX_DOWNLOADS}:/downloads \
-        ${IMAGE} \
-    && echo "Success"
-}
-
-#--[ Base methods ]------------------------------------------------------------
-show_status() {
-    if docker images "${IMAGE}" --format "{{.Repository}}:{{.Tag}}" | grep -sqv "^$"; then  echo "    Image: ${IMAGE}";
-    else echo "Error: image '${NAME}' not found"; return 1; fi
-    id=$(docker inspect --format="({{.Id}})" ${NAME} 2>/dev/null)
-    if [ -n "${id}" ]; then echo "Container: ${NAME} (${id})";
-    else echo "Error: container ${NAME} not found"; return 1; fi
-    docker inspect --format="   Status: {{.State.Status}} (restart={{.HostConfig.RestartPolicy.Name}})" ${NAME} || return 1
-    printf "%s" "    Ports: "
-    docker port ${NAME} 2>/dev/null | sed 's/0\.0\.0\.0://g' | sed 's/ //g' | xargs | grep -v '^$' \
-    || docker inspect --format="{{.HostConfig.NetworkMode}}-mode" ${NAME}
-    docker inspect --format="   Mounts: {{range .Mounts }}{{.Source}}->{{.Destination}} {{end}}" ${NAME} || return 1
-}
-
-load_config_file() {
-    if [ ! -f "${1}" ]; then return 1; fi
-    echo "Load config ${1}"
-    set -a; . ${1}; set +a
+# Show help screen based on the commented text at the top of the currect script
+show_help() {
+    sed -n '/^##/,/^$/s/^## \{0,1\}//p' "$0" | sed 's/{SCRIPT_NAME}/'"$(basename "${0}")"'/g' \
+    | sed 's/{VERSION}/'"${VERSION}"'/g'
+    exit 255
 }
 
 #-----------------------------------------------------------------------------
-cmd=${1:-"--help"}
-shift
+# PARAMETERS
+IMAGE=${IMAGE:-"rev9en/timemachine"}
+VERSION=${VERSION:-"1.0.0"}
+NAME=${NAME:-"$(basename "${IMAGE}")"}
 
-load_config_file "/etc/${CONFIG_NAME}" || load_config_file "${HOME}/.config/${CONFIG_NAME}"
-load_config
+export SMB_NAME="${SMB_NAME:-"Home Time Machine"}"
+export SMB_USER="${SMB_USER:-"tm"}"
+export SMB_PASSWORD="${SMB_PASSWORD:-"machine"}"
+export SMB_MAX_SIZE_MB="${SMB_MAX_SIZE_MB:-"0"}"
+export SMB_PORTS="${SMB_PORTS:-"445"}"
+export TM_DIRECTORY="${TM_DIRECTORY:-"/mnt/backup/timemachine"}"
 
-case "${cmd}" in
-    create|C)       create_container $@ ;;
-    config|default-config) show_config $@ ;;
-    delete|remove)
-        docker stop "${NAME}" 2>/dev/null
-        echo "Removing '${NAME}' container..."
-        docker rm "${NAME}" 2>/dev/null; echo "Done"
-        ;;
-    start|s)
-        echo "Starting '${NAME}' container..."
-        docker start "${NAME}" && echo "Started '${NAME} - successfully"
-        ;;
-    stop|S)
-        echo "Stopping '${NAME}' container ..."
-        docker stop "${NAME}" && echo "Stopped '${NAME}' - successfully"
-        ;;
-    shell|sh)
-        if [ "${1}" == "scanner" ]; then
-            shift
-            docker exec -it ${NAME} "/usr/lib/plexmediaserver/Plex Media Scanner" $@
-        else
-            docker exec -it "${NAME}" ${1:-"/bin/sh"}
-        fi
-        ;;
-    log|logs|l) docker logs "${NAME}" $@ ;;
-    status|info|I) show_status $@ ;;
-    help|--help|-h)
-        sed -n '/^##/,/^$/s/^## \{0,1\}//p' "$0" \
-        | sed 's/{IMAGE}/'"$(echo ${IMAGE} | sed 's/\//\\\//g')"'/g' \
-        | sed 's/{NAME}/'"${NAME}"'/g' \
-        | sed 's/{SCRIPT_NAME}/'"$(basename "${0}")"'/g'
-        exit 1 ;;
-    *) echo "Error: Unknow command '${cmd}'."; exit 1 ;;
+# Using your current user default group ID inside the docker container
+PGID=${TM_GID:-"$(id -G | cut -d" " -f1)"}
+# Using your current user ID inside the docker container
+PUID=${TM_UID:-${UID}}
+
+#-----------------------------------------------------------------------------
+create_container() {
+    echo "Create a timemachine container"
+    echo "Parameters:"
+    env | grep "^TM_\|^SM_" | sort | sed 's/^/* /g'
+    read -rp "Do you want to continue (Y/n)? " opt
+    if [ "${opt:-"y"}" != "y" ] && [ "${opt}" != "Y" ]; then echo "Skip"; exit 1; fi
+
+    # get current timezone: linux and os x version or UTC
+    TZ=$(ls -l /etc/localtime 2>/dev/null | awk -F"zoneinfo/" '{print $2}' 2>/dev/null || echo "UTC")
+    # The "--net=host" argument is very important, because it makes minidlna visible to all network
+    docker create --name="${NAME}" --restart=always \
+        --net=host \
+        -v "${TM_DIRECTORY}":/share \
+        -e PGID=${PGID} -e PUID=${PUID} \
+        -e TZ="${TZ}" \
+        -e SMB_NAME="${SMB_NAME}" \
+        -e SMB_USER="${SMB_USER}" \
+        -e SMB_PASSWORD="${SMB_PASSWORD}" \
+        -e SMB_MAX_SIZE_MB="${SMB_MAX_SIZE_MB}" \
+        -e SMB_PORTS="${SMB_PORTS}" \
+        "${IMAGE}:${VERSION}"
+    echo "Container '${NAME}' created successfully (from image: ${IMAGE}:${VERSION})."
+}
+
+#-----------------------------------------------------------------------------
+start_container() {
+    echo "Starting '${NAME}' container..."
+    docker start "${NAME}" && echo "Started '${NAME} - successfully"
+}
+
+#-----------------------------------------------------------------------------
+stop_container() {
+    echo "Stopping '${NAME}' container ..."
+    docker stop "${NAME}" && echo "Stopped '${NAME}' - successfully"
+}
+
+#-----------------------------------------------------------------------------
+remove_container() {
+    stop_container
+    echo "Removing '${NAME}' container..."
+    docker rm "${NAME}" 2>/dev/null
+    echo "Done"
+}
+
+#-----------------------------------------------------------------------------
+# Show main information about a contaier
+status_container() {
+    img=$(docker images "${IMAGE}" --format "{{.Repository}}:{{.Tag}}")
+    if [ -n "${img}" ]; then echo "    Image: ${img}";
+    else echo "    Image: Error - Image '${NAME}' not found"; fi
+    id=$(docker ps --filter name=${NAME} --format "{{.ID}}")
+    echo "Container: ${NAME}"
+    if [ -n "${id}" ]; then
+        ports=$(docker ps --filter name="${NAME}" --format "{{.Ports}}")
+        status=$(docker ps --filter name="${NAME}" --format "{{.Status}}")
+        mounts=$(docker inspect --format="{{range .Mounts }}{{.Source}} -> {{.Destination}},{{end}}" "${NAME}" | tr -s ',' '; ')
+        started=$(docker inspect --format='{{.State.StartedAt}}' "${NAME}")
+        echo "*  Status: ${status}"
+        echo "* Started: ${started}"
+        echo "*      ID: ${id}"
+        echo "*   Ports: ${ports}"
+        echo "*  Mounts: ${mounts}"
+        return 0
+    else
+        echo "*  Status: stopped or not exists"   
+        return 1
+    fi    
+}
+
+#-----------------------------------------------------------------------------
+# Parse command line and handle a command
+case "${1:-"help"}" in
+    create|C)           shift; create_container $@ ;;
+    delete|remove)      shift; remove_container $@ ;;
+    start|s)            shift; start_container $@ ;;
+    stop|S)             shift; stop_container $@ ;;
+    shell|sh)           shift; docker exec -it "${NAME}" ${1:-"/bin/sh"} ;;
+    log|logs|l)         shift; docker logs "${NAME}" $@ ;;
+    status|st)          shift; status_container $@ ;;
+    info|I)             shift; status_container $@ ;;
+    version|--version)  echo "${NAME} -> ${IMAGE}:${VERSION}" ;;
+    help|--help|h|-h)   show_help ;;
+    *) echo "Error: Unknow command '${1}'."; show_help ;;
 esac
-

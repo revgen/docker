@@ -43,7 +43,7 @@ PORT=${DLNA_PORT:-"8200"}
 
 #-----------------------------------------------------------------------------
 create_container() {
-    echo "Create a minidln container"
+    echo "Create a minidlna container"
     echo "Parameters:"
     env | grep "^DLNA_" | sort | sed 's/^/* /g'
     echo "* PORT=${PORT}"
