@@ -5,5 +5,7 @@
 
 This image is based on the [edgimar/docker-time-machine](https://github.com/edgimar/docker-time-machine) image.
 
+The image is currently available on [hub.docker.com][timemachine-hub].
+
 [timemachine-hub]: https://hub.docker.com/r/rev9en/timemachine/
 [github-repo]: https://github.com/revgen/docker/docker-timemachine/
