@@ -7,3 +7,7 @@ LABEL image.version="1.0.0" \
       maintainer="Evgen Rusakov" \
       url.docker="https://hub.docker.com/r/rev9en/nextcloud" \
       url.source="https://github.com/revgen/docker/docker-nextcloud"
+
+COPY entrypoint2.sh /
+
+ENTRYPOINT ["/entrypoint2.sh"]
