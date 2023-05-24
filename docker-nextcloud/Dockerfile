@@ -1,6 +1,6 @@
 FROM nextcloud:25-apache
 
-LABEL image.version="1.0.1" \
+LABEL image.version="1.0.2" \
       image.name="rev9en/nextcloud" \
       image.description="Docker image with Nextcloud" \
       image.date="2023-05-20" \
