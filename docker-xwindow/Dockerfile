@@ -1,6 +1,6 @@
 FROM debian:bullseye
 
-LABEL image.version="1.0.0" \
+LABEL image.version="1.0.1" \
       image.name="rev9en/xwindow" \
       image.description="Docker image with xwindow setup and rdp access" \
       image.date="2023-06-03" \
@@ -27,6 +27,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt install -y fluxbox wmctrl xdotool xvfb x11-xserver-utils xxkb && \
     apt install -y xrdp && \
     \
+    mkdir -p /var/log/supervisor/ && \
+    \
     echo "====[ Clean unused resources ]====" && \
     apt purge -y xfonts-75dpi && \
     apt purge -y xfonts-100dpi && \
@@ -47,7 +49,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         -and -iname "*.gz" -exec sudo rm -f "{}" \; &&  \
     \
     apt clean && \
-    rm -rf /var/cache/* /var/log/apt/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*
+    rm -rf /var/cache/* /var/log/apt/* /var/lib/apt/lists/* && \
+    rm -rf /tmp/* /var/tmp/* /var/log/* /var/cache/*
 
 COPY root-fs/ /
 
