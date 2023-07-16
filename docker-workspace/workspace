@@ -2,7 +2,7 @@
 #=============================================================================
 ## Helper script to control workspace docker container
 ##
-## Usage: {SCRIPT_NAME} <start|stop|create|remove|logs|info|shell>
+## Usage: {SCRIPT_NAME} <start|stop|remove|logs|info|shell>
 ##
 #  Author  : Evgen Rusakov
 #  Url     : https://github.com/revgen/docker-workspace
@@ -31,20 +31,24 @@ RDP_PORT=3389
 SSH_PORT=9922
 MAINUSER=dev
 MAINUSER_PASSWORD="Test1234"
+MAINUSER_HOME="${HOME}/.local/var/docker-workspace/${MAINUSER}"
 
 #-----------------------------------------------------------------------------
-create_container() {
-    echo "Create a ${NAME} container"
+start_container() {
+    echo "Start a ${NAME} container"
     echo "Parameters:"
     echo "* RDP_PORT=${RDP_PORT}"
     echo "* SSH_PORT=${SSH_PORT}"
+    echo "* HOME=${MAINUSER_HOME}"
     read -rp "Do you want to continue (Y/n)? " opt
     if [ "${opt:-"y"}" != "y" ] && [ "${opt}" != "Y" ]; then echo "Skip"; exit 1; fi
 
-    docker create --name="${NAME}" \
+    mkdir -p "${MAINUSER_HOME}"
+    docker run --detach --rm --name="${NAME}" \
         --privileged \
         -p ${RDP_PORT}:3389 \
         -p ${SSH_PORT}:22 \
+        -v "${MAINUSER_HOME}":/home/${MAINUSER} \
         -e "MAINUSER_PASSWORD=${MAINUSER_PASSWORD}" \
         -e PGID=${PGID} -e PUID=${PUID} \
         -e TZ="${TZ}" \
@@ -55,12 +59,6 @@ create_container() {
 #-----------------------------------------------------------------------------
 open_shell() {
     docker exec -it "${NAME}" su -l "${MAINUSER}"
-}
-
-#-----------------------------------------------------------------------------
-start_container() {
-    echo "Starting '${NAME}' container..."
-    docker start "${NAME}" && echo "Started '${NAME} - successfully"
 }
 
 #-----------------------------------------------------------------------------
@@ -112,9 +110,8 @@ status_container() {
 #-----------------------------------------------------------------------------
 # Parse command line and handle a command
 case "${1:-"help"}" in
-    create|C)           shift; create_container "${@}" ;;
     delete|remove)      shift; remove_container "${@}" ;;
-    start|s)            shift; start_container "${@}" ;;
+    start|s|run)        shift; start_container "${@}" ;;
     stop|S)             shift; stop_container "${@}" ;;
     shell|sh)           shift; open_shell "${@}" ;;
     log|logs|l)         shift; docker logs "${NAME}" "${@}" ;;

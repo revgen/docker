@@ -20,26 +20,30 @@
 ##   ~/.config/{NAME}.conf
 #
 #  Author     : Evgen Rusakov
-#  Version    : 1.0.0
+#  Version    : 1.0.1
 #  Url        : https://github.com/revgen
 #  License    : MIT
 #=============================================================================
-NAME=${CONTAINER_NAME:-"nextcloud"}
-IMAGE=rev9en/nextcloud
-CONFIG_NAME=${NAME}.conf
-PUID=${PUID:-"${UID}"}
-PGID=${PGID:-"$(id -g)"}
-TZ=$(cat /etc/timezone 2>/dev/null)
+# export NAME=${CONTAINER_NAME:-"nextcloud"}
+export NAME="$(basename "$(pwd)")"
+export IMAGE=rev9en/nextcloud
+export CONFIG_NAME=${NAME}.conf
+export PUID=${PUID:-"${UID}"}
+export PGID=${PGID:-"$(id -g)"}
+export TZ=$(cat /etc/timezone 2>/dev/null)
 
 #--[ The script specific methods ]---------------------------------------------
 load_config() {
-    NEXTCLOUD_ADMIN_USERNAME=${NEXTCLOUD_ADMIN_USERNAME:-"admin"}
-    NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-"Admin1234"}
-    NEXTCLOUD_PORT=${NEXTCLOUD_PORT:-"9180"}
-    NEXTCLOUD_ROOT=${NEXTCLOUD_ROOT:-"$(pwd)/nextcloud_root"}
-    NEXTCLOUD_DATA=${NEXTCLOUD_DATA:-"$(pwd)/nextcloud_data"}
-    NEXTCLOUD_CONFIG=${NEXTCLOUD_CONFIG:-"$(pwd)/nextcloud_config"}
-    NEXTCLOUD_APPS=${NEXTCLOUD_APPS:-"$(pwd)/nextcloud_apps"}
+    export NEXTCLOUD_ADMIN_USERNAME=${NEXTCLOUD_ADMIN_USERNAME:-"admin"}
+    export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-"Admin1234"}
+    export NEXTCLOUD_PORT=${NEXTCLOUD_PORT:-"9180"}
+    export NEXTCLOUD_ROOT=${NEXTCLOUD_ROOT:-"$(pwd)/nextcloud_root"}
+    export NEXTCLOUD_DATA=${NEXTCLOUD_DATA:-"$(pwd)/nextcloud_data"}
+    export NEXTCLOUD_CONFIG=${NEXTCLOUD_CONFIG:-"$(pwd)/nextcloud_config"}
+    export NEXTCLOUD_APPS=${NEXTCLOUD_APPS:-"$(pwd)/nextcloud_apps"}
+    export NEXTCLOUD_DB_DATA=${NEXTCLOUD_DB_DATA:-"$(pwd)/nextcloud_db"}
+    export NEXTCLOUD_DB_NAME=${NEXTCLOUD_DB_NAME:-"nextcloud"}
+    export NEXTCLOUD_DB_PASS=${NEXTCLOUD_DB_PASS:-"nextcloud"}
 }
 
 show_config() {
@@ -51,11 +55,19 @@ show_config() {
     echo "NEXTCLOUD_DATA=${NEXTCLOUD_DATA}"
     echo "NEXTCLOUD_CONFIG=${NEXTCLOUD_CONFIG}"
     echo "NEXTCLOUD_APPS=${NEXTCLOUD_APPS}"
+    echo "NEXTCLOUD_DB_DATA=${NEXTCLOUD_DB_DATA}"
+    echo "NEXTCLOUD_DB_NAME=${NEXTCLOUD_DB_NAME}"
+    echo "NEXTCLOUD_DB_PASS=${NEXTCLOUD_DB_PASS}"
+}
+
+show_docker_compose_tmpl() {
+    cat "$(dirname "${0}")/docker-compose.tmpl.yml"
 }
 
 create_container() {
     mkdir -p "${NEXTCLOUD_ROOT}" "${NEXTCLOUD_DATA}" "${NEXTCLOUD_CONFIG}" "${NEXTCLOUD_APPS}"
-    #chown -R ${PUID}:${PGID} "${NEXTCLOUD_ROOT}" "${NEXTCLOUD_DATA}" "${NEXTCLOUD_CONFIG}" "${NEXTCLOUD_APPS}"
+    
+    export NEXTCLOUD_DB_HOST="${NAME}-db-1"
 
     echo "Create ${NAME} container."
     echo "-   Root: ${NEXTCLOUD_ROOT}"
@@ -63,36 +75,26 @@ create_container() {
     echo "- Config: ${NEXTCLOUD_CONFIG}"
     echo "-   Apps: ${NEXTCLOUD_APPS}"
     echo "-  Admin: ${NEXTCLOUD_ADMIN_USERNAME}"
-    docker create --name ${NAME} --restart=always \
-        -p "${NEXTCLOUD_PORT}":80 \
-        -e TZ="${TZ}" \
-        -e PGID=${PGID} -e PUID=${PUID} \
-        -e NEXT_CLOUD_ADMIN_USER="${NEXTCLOUD_ADMIN_USERNAME}" \
-        -e NEXT_CLOUD_ADMIN_PASSWORD="${NEXTCLOUD_ADMIN_PASSWORD}" \
-        -v ${NEXTCLOUD_ROOT}:/var/www/html \
-        -v ${NEXTCLOUD_DATA}:/var/www/html/data \
-        -v ${NEXTCLOUD_CONFIG}:/var/www/html/config \
-        -v ${NEXTCLOUD_APPS}:/var/www/html/apps \
-        ${IMAGE} \
-    && echo "Success"
+    echo "-DB path: ${NEXTCLOUD_DB_DATA}"
+    echo "-DB host: ${NEXTCLOUD_DB_HOST}"
+    echo "-DB name: ${NEXTCLOUD_DB_NAME}"
+    echo "-DB pass: $(echo "${NEXTCLOUD_DB_PASS}" | sed 's/./*/g')"
+
+    show_docker_compose_tmpl | envsubst > docker-compose.yml
+    [ -f docker-compose.yml ] && echo "Success"
 }
 
 #--[ Base methods ]------------------------------------------------------------
 show_status() {
-    if docker images "${IMAGE}" --format "{{.Repository}}:{{.Tag}}" | grep -sqv "^$"; then  echo "    Image: ${IMAGE}";
-    else echo "Error: image '${NAME}' not found"; return 1; fi
-    id=$(docker inspect --format="({{.Id}})" ${NAME} 2>/dev/null)
-    if [ -n "${id}" ]; then echo "Container: ${NAME} (${id})";
-    else echo "Error: container ${NAME} not found"; return 1; fi
-    docker inspect --format="   Status: {{.State.Status}} (restart={{.HostConfig.RestartPolicy.Name}})" ${NAME} || return 1
-    printf "%s" "    Ports: "
-    docker port ${NAME} 2>/dev/null | sed 's/0\.0\.0\.0://g' | sed 's/ //g' | xargs | grep -v '^$' \
-    || docker inspect --format="{{.HostConfig.NetworkMode}}-mode" ${NAME}
-    docker inspect --format="   Mounts: {{range .Mounts }}{{.Source}}->{{.Destination}} {{end}}" ${NAME} || return 1
+    docker compose ps --all
 }
 
 load_config_file() {
-    if [ ! -f "${1}" ]; then return 1; fi
+    # echo "Check config file ${1}..."
+    if [ ! -f "${1}" ]; then
+        # echo "Config file ${1} not found. Skip."
+        return 1
+    fi
     echo "Load config ${1}"
     set -a; . ${1}; set +a
 }
@@ -110,25 +112,29 @@ case "${cmd}" in
     delete|remove)
         docker stop "${NAME}" 2>/dev/null
         echo "Removing '${NAME}' container..."
-        docker rm "${NAME}" 2>/dev/null; echo "Done"
+        docker compose down 2>/dev/null; echo "Done"
         ;;
     start|s)
-        echo "Starting '${NAME}' container..."
-        docker start "${NAME}" && echo "Started '${NAME} - successfully"
-        ;;
-    stop|S)
-        echo "Stopping '${NAME}' container ..."
-        docker stop "${NAME}" && echo "Stopped '${NAME}' - successfully"
-        ;;
-    shell|sh)
-        if [ "${1}" == "occ" ]; then
-            shift
-            docker exec --user www-data -it ${NAME} "/var/www/html/occ" "${@}"
-        else
-            docker exec -it "${NAME}" ${1:-"/bin/sh"}
+        echo "Starting '${NAME}' containers..."
+        docker compose up -d && echo "Started '${NAME} - successfully"
+        if [ "${1}" == "--logs" ]; then
+            echo "Show logs (Ctrl+C to exit)..."
+            docker compose logs -f
         fi
         ;;
-    log|logs|l) docker logs "${NAME}" $@ ;;
+    stop|S)
+        echo "Stopping '${NAME}' containers ..."
+        docker compose stop && echo "Stopped '${NAME}' - successfully"
+        ;;
+    # shell|sh)
+    #     if [ "${1}" == "occ" ]; then
+    #         shift
+    #         docker exec --user www-data -it ${NAME} "/var/www/html/occ" "${@}"
+    #     else
+    #         docker exec -it "${NAME}" ${1:-"/bin/sh"}
+    #     fi
+    #     ;;
+    log|logs|l) docker compose logs $@ ;;
     status|info|I) show_status $@ ;;
     help|--help|-h)
         sed -n '/^##/,/^$/s/^## \{0,1\}//p' "$0" \

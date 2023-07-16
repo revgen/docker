@@ -8,7 +8,11 @@ LABEL image.version="1.0.5" \
       url.docker="https://hub.docker.com/r/rev9en/nextcloud" \
       url.source="https://github.com/revgen/docker/docker-nextcloud"
 
-COPY entrypoint2.sh /
+COPY entrypoint_ext.sh /tmp/
 
-ENTRYPOINT ["/entrypoint2.sh"]
-CMD ["apache2-foreground"]
+RUN mv /entrypoint.sh /entrypoint.sh.orig && \
+      head -n 1 /entrypoint.sh.orig > /entrypoint.sh && \
+      grep -v '^#!' /tmp/entrypoint_ext.sh >> /entrypoint.sh && \
+      sed 's/rsync /rsync -v /g' /entrypoint.sh.orig | tail -n +2 >> /entrypoint.sh && \
+      chmod +x /entrypoint.sh && \
+      rm -f /tmp/entrypoint_ext.sh
