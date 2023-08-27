@@ -86,7 +86,7 @@ create_container() {
 
 #--[ Base methods ]------------------------------------------------------------
 show_status() {
-    docker compose ps --all
+    docker-compose ps --all
 }
 
 load_config_file() {
@@ -112,19 +112,19 @@ case "${cmd}" in
     delete|remove)
         docker stop "${NAME}" 2>/dev/null
         echo "Removing '${NAME}' container..."
-        docker compose down 2>/dev/null; echo "Done"
+        docker-compose down 2>/dev/null; echo "Done"
         ;;
     start|s)
         echo "Starting '${NAME}' containers..."
-        docker compose up -d && echo "Started '${NAME} - successfully"
+        docker-compose up -d && echo "Started '${NAME} - successfully"
         if [ "${1}" == "--logs" ]; then
             echo "Show logs (Ctrl+C to exit)..."
-            docker compose logs -f
+            docker-compose logs -f
         fi
         ;;
     stop|S)
         echo "Stopping '${NAME}' containers ..."
-        docker compose stop && echo "Stopped '${NAME}' - successfully"
+        docker-compose stop && echo "Stopped '${NAME}' - successfully"
         ;;
     # shell|sh)
     #     if [ "${1}" == "occ" ]; then
@@ -134,7 +134,7 @@ case "${cmd}" in
     #         docker exec -it "${NAME}" ${1:-"/bin/sh"}
     #     fi
     #     ;;
-    log|logs|l) docker compose logs $@ ;;
+    log|logs|l) docker-compose logs $@ ;;
     status|info|I) show_status $@ ;;
     help|--help|-h)
         sed -n '/^##/,/^$/s/^## \{0,1\}//p' "$0" \
