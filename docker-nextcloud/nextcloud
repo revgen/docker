@@ -61,7 +61,7 @@ show_config() {
 }
 #-----------------------------------------------------------------------------
 show_docker_compose_file() {
-    echo 'version: 3
+    echo 'version: "3"
 
 services:
   db:
@@ -103,7 +103,7 @@ services:
 create_container() {
     mkdir -p "${NEXTCLOUD_ROOT}" "${NEXTCLOUD_DATA}" "${NEXTCLOUD_CONFIG}" "${NEXTCLOUD_APPS}"
     
-    export NEXTCLOUD_DB_HOST="${NAME}-db-1"
+    export NEXTCLOUD_DB_HOST="${NAME}_db-1"
 
     echo "Create ${NAME} container."
     echo "-   Root: ${NEXTCLOUD_ROOT}"
