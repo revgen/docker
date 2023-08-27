@@ -141,7 +141,9 @@ load_config_file() {
 cmd=${1:-"--help"}
 shift
 
-load_config_file "/etc/${CONFIG_NAME}" || load_config_file "${HOME}/.config/${CONFIG_NAME}"
+load_config_file "/etc/${CONFIG_NAME}" \
+|| load_config_file "${HOME}/.config/${CONFIG_NAME}" \
+|| load_config_file "$(dirname "${0}")/${CONFIG_NAME}"
 load_config
 
 case "${cmd}" in
