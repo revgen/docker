@@ -60,8 +60,8 @@ show_config() {
     echo "NEXTCLOUD_DB_PASS=${NEXTCLOUD_DB_PASS}"
 }
 
-show_docker_compose_tmpl() {
-    cat "$(dirname "${0}")/docker-compose.tmpl.yml"
+show_docker_compose_file() {
+    cat "$(dirname "${0}")/docker-compose.yml"
 }
 
 create_container() {
@@ -80,7 +80,7 @@ create_container() {
     echo "-DB name: ${NEXTCLOUD_DB_NAME}"
     echo "-DB pass: $(echo "${NEXTCLOUD_DB_PASS}" | sed 's/./*/g')"
 
-    show_docker_compose_tmpl | envsubst > docker-compose.yml
+    show_docker_compose_file | envsubst > docker-compose.yml
     [ -f docker-compose.yml ] && echo "Success"
 }
 
