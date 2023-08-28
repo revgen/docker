@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-LABEL image.version="1.0.0" \
+LABEL image.version="1.0.1" \
       image.name="rev9en/timemachine" \
       image.description="Docker image with timemachine (samba version)" \
       image.date="2023-02-26" \
@@ -30,5 +30,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 VOLUME ["/share"]
+
+EXPOSE 445 5353
 
 CMD ["/start-timemachine.sh"]

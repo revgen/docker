@@ -24,15 +24,15 @@ show_help() {
 #-----------------------------------------------------------------------------
 # PARAMETERS
 IMAGE=${IMAGE:-"rev9en/timemachine"}
-VERSION=${VERSION:-"1.0.0"}
-NAME=${NAME:-"$(basename "${IMAGE}")"}
+VERSION=${VERSION:-"1.0.1"}
+NAME=${NAME:-"$(basename "${IMAGE}" | sed 's/-cli//g')"}
 
 export SMB_NAME="${SMB_NAME:-"Home Time Machine"}"
 export SMB_USER="${SMB_USER:-"tm"}"
 export SMB_PASSWORD="${SMB_PASSWORD:-"machine"}"
 export SMB_MAX_SIZE_MB="${SMB_MAX_SIZE_MB:-"0"}"
 export SMB_PORTS="${SMB_PORTS:-"445"}"
-export TM_DIRECTORY="${TM_DIRECTORY:-"/mnt/backup/timemachine"}"
+export TM_DIRECTORY="${TM_DIRECTORY:-"/mnt/backup/timemachine/storage"}"
 
 # Using your current user default group ID inside the docker container
 PGID=${TM_GID:-"$(id -G | cut -d" " -f1)"}
