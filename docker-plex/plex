@@ -74,6 +74,7 @@ create_container() {
         -p 32410:32410/udp -p 32412:32412/udp -p 32413:32413/udp -p 32414:32414/udp \
         -p 32469:32469/tcp \
         -e TZ="${TZ}" \
+        -e PLEX_GID=${PGID} -e PLEX_UID=${PUID} \
         -e PGID=${PGID} -e PUID=${PUID} \
         -e PLEX_CLAIM="${PLEX_CLAIM_TOKEN}" \
         -v ${PLEX_CONFIG}:/config \
