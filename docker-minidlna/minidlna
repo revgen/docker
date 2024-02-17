@@ -29,7 +29,7 @@ VERSION=${VERSION:-"1.0.2"}
 NAME=${NAME:-"$(basename "${IMAGE}")"}
 
 export DLNA_VIDEO_STORAGE="${DLNA_VIDEO_STORAGE:-"/mnt/storage/media/Video"}"
-export DLNA_MUSIC_STORAGE="${DDLNA_MUSIC_STORAGE:-"/mnt/storage/media/Music"}"
+export DLNA_MUSIC_STORAGE="${DLNA_MUSIC_STORAGE:-"/mnt/storage/media/Music"}"
 export DLNA_IMAGES_STORAGE="${DLNA_IMAGES_STORAGE:-"/mnt/storage/photos"}"
 export DLNA_DOWNLOADS_STORAGE="${DLNA_DOWNLOADS_STORAGE:-"/mnt/storage/downloads"}"
 export DLNA_SERVER_NAME="${DLNA_SERVER_NAME:-"MediaServer"}"
