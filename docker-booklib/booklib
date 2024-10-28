@@ -1,0 +1,43 @@
+#!/bin/sh
+# ############################################################################
+#
+# Source: https://hub.docker.com/r/linuxserver/calibre-web
+#
+# ############################################################################
+IMAGE="lscr.io/linuxserver/calibre-web:latest"
+NAME="booklib"
+WEBUI_PORT="${WEBUI_PORT:-"8083"}"
+# Using your current user default group ID inside the docker container
+PGID=${BL_GID:-"$(id -G | cut -d" " -f1)"}
+# Using your current user ID inside the docker container
+PUID=${BL_UID:-${UID}}
+# get current timezone: linux and os x version or UTC
+TZ=$(ls -l /etc/localtime 2>/dev/null | awk -F"zoneinfo/" '{print $2}' 2>/dev/null || echo "UTC")
+
+BOOKLIB_CONFIG="${BOOKLIB_CONFIG:-"${HOME}/Documents/booklib/config"}"
+BOOKLIB_DATA="${BOOKLIB_DATA:-"${HOME}/Documents/booklib/data"}"
+
+echo "Start Calibre Web"
+echo "- Book data     : ${BOOKLIB_DATA}"
+echo "- Book config   : ${BOOKLIB_CONFIG}"
+echo "- Default access: http://localhost:8083 (admin / admin123)"
+
+if [ ! -d "${BOOKLIB_DATA}" ]; then
+    read -p "Warning: Directory ${BOOKLIB_DATA} not exists. Do you want to create a new one (y/N) ?" opt
+    if [ "${opt:-"n"}" != y ] and [ "${opt}" != "Y" ]; then echo "Skip."; exit 1; fi
+fi
+mkdir -p "${BOOKLIB_CONFIG}"
+mkdir -p "${BOOKLIB_DATA}"
+
+docker run -d \
+  --name="${NAME}" \
+  -e PUID=${PUID} \
+  -e PGID=${PGID} \
+  -e TZ=${TZ} \
+  -e DOCKER_MODS=linuxserver/mods:universal-calibre `#optional` \
+  -e OAUTHLIB_RELAX_TOKEN_SCOPE=1 `#optional` \
+  -p ${WEBUI_PORT}:8083 \
+  -v "${BOOKLIB_CONFIG}":/config \
+  -v "${BOOKLIB_DATA}":/books \
+  --restart unless-stopped \
+  "${IMAGE}"
