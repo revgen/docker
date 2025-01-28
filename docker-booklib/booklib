@@ -1,26 +1,32 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ############################################################################
 #
 # Source: https://hub.docker.com/r/linuxserver/calibre-web
 #
 # ############################################################################
-IMAGE="lscr.io/linuxserver/calibre-web:latest"
+IMAGE="lscr.io/linuxserver/calibre:latest"
 NAME="booklib"
-WEBUI_PORT="${WEBUI_PORT:-"8083"}"
+WEBUI_HTTP_PORT="${WEBUI_HTTP_PORT:-"9080"}"
+WEBUI_HTTPS_PORT="${WEBUI_HTTPS_PORT:-"9181"}"
+MANAGEMENT_HTTP_PORT="${MANAGEMENT_HTTP_PORT:-"9081"}"
 # Using your current user default group ID inside the docker container
 PGID=${BL_GID:-"$(id -G | cut -d" " -f1)"}
 # Using your current user ID inside the docker container
 PUID=${BL_UID:-${UID}}
 # get current timezone: linux and os x version or UTC
 TZ=$(ls -l /etc/localtime 2>/dev/null | awk -F"zoneinfo/" '{print $2}' 2>/dev/null || echo "UTC")
+MANAGEMENT_USER=admin
+MANAGEMENT_PASS="$(openssl rand -base64 24)"
 
 BOOKLIB_CONFIG="${BOOKLIB_CONFIG:-"${HOME}/Documents/booklib/config"}"
 BOOKLIB_DATA="${BOOKLIB_DATA:-"${HOME}/Documents/booklib/data"}"
 
+access_info="http://localhost:${WEBUI_HTTP_PORT} (${MANAGEMENT_USER} / ${MANAGEMENT_PASS})"
 echo "Start Calibre Web"
 echo "- Book data     : ${BOOKLIB_DATA}"
 echo "- Book config   : ${BOOKLIB_CONFIG}"
-echo "- Default access: http://localhost:8083 (admin / admin123)"
+echo "- Default access: ${access_info}
+echo "Books Library: ${access_info}" > /tmp/booklib-management-access.txt
 
 if [ ! -d "${BOOKLIB_DATA}" ]; then
     read -p "Warning: Directory ${BOOKLIB_DATA} not exists. Do you want to create a new one (y/N) ?" opt
@@ -31,12 +37,17 @@ mkdir -p "${BOOKLIB_DATA}"
 
 docker run -d \
   --name="${NAME}" \
+  -e TITLE="Books-Library" \
+  -e CUSTOM_USER="${MANAGEMENT_USER}" \
+  -e PASSWORD="${MANAGEMENT_PASS}" \
   -e PUID=${PUID} \
   -e PGID=${PGID} \
   -e TZ=${TZ} \
   -e DOCKER_MODS=linuxserver/mods:universal-calibre `#optional` \
   -e OAUTHLIB_RELAX_TOKEN_SCOPE=1 `#optional` \
-  -p ${WEBUI_PORT}:8083 \
+  -p ${WEBUI_HTTP_PORT}:8080 \
+  -p ${WEBUI_HTTPS_PORT}:8181 \
+  -p ${MANAGEMENT_HTTP_PORT}:8081 \
   -v "${BOOKLIB_CONFIG}":/config \
   -v "${BOOKLIB_DATA}":/books \
   --restart unless-stopped \
