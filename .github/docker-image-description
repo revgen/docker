@@ -8,6 +8,6 @@ if [ ! -f "./Dockerfile" ]; then
     exit 1
 fi
 GITHUB_ENV=${GITHUB_ENV:-"/dev/stdout"}
-IMAGE_DESCRIPTION=$(cat ./Dockerfile | grep "image.description" | cut -d'"' -f2)
+IMAGE_DESCRIPTION=$(cat ./Dockerfile | grep "image.description\|LABEL description" | cut -d'"' -f2)
 echo "IMAGE_DESCRIPTION=$IMAGE_DESCRIPTION" >> $GITHUB_ENV
 echo "Docker image description: ${IMAGE_DESCRIPTION}"
