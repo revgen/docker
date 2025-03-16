@@ -34,7 +34,7 @@ else
     if ! grep -q "${SMTP_SERVER}" /etc/postfix/sasl_passwd 2> /dev/null; then
         echo "[${SMTP_SERVER}]:${SMTP_PORT} ${SMTP_USERNAME}:${SMTP_PASSWORD}" >> /etc/postfix/sasl_passwd
         postmap /etc/postfix/sasl_passwd
-        chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+        chmod 600 /etc/postfix/sasl_passwd
     fi
 fi
 

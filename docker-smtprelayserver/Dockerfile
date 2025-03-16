@@ -1,7 +1,7 @@
 FROM alpine:3.20.6
 
-ARG NAME="smtprelayserver"
-ARG VERSION="0.0.1"
+ARG NAME="rev9en/smtprelayserver"
+ARG VERSION="0.1.0"
 
 LABEL version="${VERSION}"
 LABEL description="Simple smtp relay server"
@@ -16,7 +16,6 @@ RUN \
     postconf -ev 'mydestination = localhost' && \
     postconf -ev 'myorigin = $mydomain' && \
     postconf -ev 'smtp_host_lookup = native,dns' && \
-    postconf -ev 'smtp_use_tls = yes' && \
     postconf -ev 'maillog_file = /dev/stdout' && \
     postconf -Mv "postlog/unix-dgram=postlog   unix-dgram n  -       n       -       1       postlogd" && \
     newaliases
